@@ -1,0 +1,62 @@
+# {任务名称} — 业务表结构说明
+
+> 本文档定义业务数据模型（实体 / 表 / 字段 / 关系 / 状态机）。上游：`tech/03-tech-architecture.md`。下游：`tech/05-api-design.md`。
+> 通用字段约定见 `../技术通用规则.md` 第 5 节（软删 / 审计 / 命名），本文件只定义业务字段。
+> 跨任务通用实体已抽取进 `../技术通用规则.md` 第 6 节，本文件只引用。
+
+## 1. 实体关系总览（ER 概要）
+- 实体清单: [用户 / 订单 / 商品…]
+- 关系: [用户 1:N 订单；订单 N:N 商品（订单项关联）]
+（建议附 ER 图；可用 Mermaid/PlantUML 或文字描述）
+
+## 2. 表结构明细
+
+### 表: [t_user]  （实体: 用户）
+- 所属模块: [用户中心]
+- 说明: [一张表存什么]
+- 核心字段:
+  | 字段名 | 类型 | 约束 | 默认值 | 说明 |
+  |--------|------|------|--------|------|
+  | id | bigint | PK, AUTO_INCREMENT | - | 主键 |
+  | username | varchar(64) | NOT NULL, UNIQUE | - | 用户名 |
+  | ... | ... | ... | ... | ... |
+- 索引:
+  | 索引名 | 字段 | 类型 | 说明 |
+  |--------|------|------|------|
+  | uk_username | username | UNIQUE | 用户名唯一 |
+- 状态字段/状态机: [status: 0-禁用 1-正常；状态流转…]
+- 软删: [deleted_at datetime NULL 表示未删]
+- 审计字段: [created_at, updated_at, created_by, updated_by]
+- 建表语句(DDL):
+  ```sql
+  CREATE TABLE t_user (
+    id          BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    username    VARCHAR(64)  NOT NULL COMMENT '用户名',
+    status      TINYINT      NOT NULL DEFAULT 1 COMMENT '状态: 0-禁用 1-正常',
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted_at  DATETIME     NULL     DEFAULT NULL COMMENT '软删时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_username (username)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+  ```
+- 索引语句(DDL):
+  ```sql
+  -- 普通/唯一索引（与上方 PRIMARY/UNIQUE 不重复列举，仅列需单独建的索引）
+  CREATE INDEX idx_status ON t_user(status);
+  ```
+
+### 表: [t_order] ...
+（每个表按上述结构展开）
+
+## 3. 跨表关系与一致性
+- 外键/关联: [order.user_id → user.id]
+- 事务边界: [下单涉及 订单/库存/支付 一致性]
+- 冗余/反范式: [如订单快照商品名]
+
+## 4. 分表/分库规划（如适用）
+- [订单按 user_id 取模分 16 表；历史归档策略]
+
+## 5. 数据字典补充
+- 枚举值: [status 枚举含义表]
+- 编码规则: [单号生成规则]

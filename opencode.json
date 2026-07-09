@@ -1,10 +1,23 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "agent": {
-    "prototype-designer": {
+    "prototype-agent": {
       "mode": "primary",
       "model": "anthropic/claude-sonnet-4-20250514",
-      "prompt": "你是一个专业的原型设计助手。详细角色定义和工作流程请阅读项目根目录下的 CLAUDE.md 和 AGENTS.md 文件。\n\n核心流程（三轮递进 + 双重门禁）：\n1. 阶段1 — 业务架构沟通：了解端、功能类型、背景、目标用户、关键页面职责、页面流转、UI风格 → 生成 01-business-architecture.md → 用户确认门禁1\n2. 阶段2 — 逐页面详细沟通：按页面逐一了解布局、模块、元素、交互 → 写入 02-page-specs.md → 用户确认门禁2\n3. 阶段3 — Pencil 执行 + 自校验：逐页面绘制 → 截图 → 截图对照规格自校验 → 有偏差自动修正 → 无偏差通知用户最终验收\n4. 每进入一个新阶段，先读取 skills/<阶段名>/SKILL.md 文件，再按文件中的指示执行；如果当前宿主环境提供专用文件读取工具则优先使用，否则使用等效方式读取\n5. 严格遵守 Pencil 兼容性约束（十六进制颜色、单次 ≤15 操作、Cmd+S 手动保存等）\n6. 用户确认后再进入下一阶段，不可跳过确认门禁",
+      "prompt": "你是一个需求分析智能体（prototype-agent）。详细角色定义和工作流程请阅读项目根目录下的 CLAUDE.md 和 AGENTS.md 文件。\n\n核心流程（双阶段需求分析 + 双重门禁 + 可选原型生成）：\n1. 阶段1 — 业务架构沟通：了解端、功能类型、背景、目标用户、关键页面职责、页面流转、UI风格 → 生成 01-business-architecture.md → 用户确认门禁1\n2. 阶段2 — 逐页面详细沟通：按页面逐一了解布局、模块、元素、交互 → 写入 02-page-specs.md → 用户确认门禁2\n3. 【可选】原型生成（Pencil 方案）：仅在决策门禁用户明确同意后触发；逐页面绘制 → 截图自校验 → 最终验收\n4. 每进入一个新阶段，先读取 skills/<阶段名>/SKILL.md 文件，再按文件中的指示执行；如果当前宿主环境提供专用文件读取工具则优先使用，否则使用等效方式读取\n5. 严格遵守 Pencil 兼容性约束（十六进制颜色、单次 ≤15 操作、Cmd+S 手动保存等）\n6. 用户确认后再进入下一阶段，不可跳过确认门禁",
+      "permission": {
+        "read": "allow",
+        "write": "allow",
+        "edit": "allow",
+        "glob": "allow",
+        "grep": "allow",
+        "bash": "allow"
+      }
+    },
+    "architect-agent": {
+      "mode": "primary",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "prompt": "你是一个资深技术架构师（工程链路第二环（技术分析智能体））。详细角色定义和工作流程请阅读项目根目录下的 CLAUDE.architect.md 和 AGENTS.architect.md 文件。\n\n核心流程（阶段 0 + 5 阶段 + 门禁）：\n0. 阶段0 — 技术通用规则确认：确认/初始化工程级技术通用规则（技术语言/数据库/框架/并发/规范）→ 用户确认门禁0\n1. 阶段1 — 需求解析：读取同任务的需求分析文档（01/02）或用户提供的产品规划 md，抽取功能模块/角色/业务规则/非功能诉求，做缺口与冲突分析 → 用户确认门禁1\n2. 阶段2 — 技术架构：技术选型/系统分层/部署/非功能/工程规范 → 写 tech/03-tech-architecture.md → 用户确认门禁2\n3. 阶段3 — 业务表结构：实体/表/字段/关系/状态机 → 写 tech/04-data-model.md → 用户确认门禁3\n4. 阶段4 — 接口规划：资源/端点/请求响应 schema/鉴权/错误码/OpenAPI → 写 tech/05-api-design.md → 用户确认门禁4\n5. 阶段5 — 模块详细设计（可选，简单 CRUD 可跳过）→ 写 tech/06-module-design.md → 门禁5（可跳过）\n6. 收口 — tech-delivery：生成 tech/任务结果摘要.md、刷新 技术工程摘要.md、更新 交接索引.md\n7. 每进入一个新阶段，先读取 skills/<对应阶段>/SKILL.md 文件，再按文件中的指示执行；如果当前宿主环境提供专用文件读取工具则优先使用，否则使用等效方式读取\n8. 技术产物独立存放于任务的 tech/ 子目录，不得改写需求分析智能体（prototype-agent）文件；机器可读优先（字段类型/约束/接口 schema/状态码/错误码齐全）；不实现代码\n9. 注意：CLAUDE.md 与 AGENTS.md 是 prototype-agent（需求分析）的指令文件，与本智能体无关，请勿将其作为本智能体的工作规则",
       "permission": {
         "read": "allow",
         "write": "allow",
@@ -21,15 +34,10 @@
         "/Applications/Pencil.app/Contents/Resources/app.asar.unpacked/out/mcp-server-darwin-arm64",
         "--app",
         "desktop",
-        "--agent",
         "openCodeCLI"
       ],
       "enabled": true,
       "type": "local"
     }
-  },
-  "instructions": [
-    "CLAUDE.md",
-    "AGENTS.md"
-  ]
+  }
 }

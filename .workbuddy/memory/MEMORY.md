@@ -34,6 +34,6 @@
 - **02 页面模板**含「未决项」字段（每页），与 page-specs 完整性校验、任务结果摘要「未决项」节闭环。
 - 术语对齐：工程摘要首列称「任务目录」；任务结果摘要引用 01 章节名用「角色与权限（产品级）」（非「矩阵」）。
 
-## prototype/ 历史产物处理约定
-- `prototype/` 下的子目录（含历史任务目录如 集采商城_V1_20260614 等旧格式产物：requirement-analysis.md / prototype-work-checklist.md / delivery-manifest.md，无 01/02、无三层文件）**属于用户自有内容，维持现状不动**。
+## document/ 历史产物处理约定
+- `document/` 下的子目录（含历史任务目录如 集采商城_V1_20260614 等旧格式产物：requirement-analysis.md / prototype-work-checklist.md / delivery-manifest.md，无 01/02、无三层文件）**属于用户自有内容，维持现状不动**。
 - 不迁移、不加注免责说明、不纳入逻辑闭环整改对象；与新规范不平齐属预期状态，不作为审计缺陷。

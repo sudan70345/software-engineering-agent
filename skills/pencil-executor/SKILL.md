@@ -44,19 +44,19 @@ allowed-tools:
 
 ## 输入
 
-- `prototype/{工程名}/{task_dir}/02-page-specs.md`（需求包，工具无关，已确认）
-- `prototype/{工程名}/{task_dir}/ui-design-elements.md`（UI 要素模板或用户自定义）
-- `prototype/{工程名}/project-common-rules.md`（所属工程公共规则：角色 / 权限 / 通用 UI 标准 / 术语，生成时须遵循）
+- `document/{工程名}/{task_dir}/prd/02-page-specs.md`（需求包，工具无关，已确认）
+- `document/{工程名}/{task_dir}/ui-design-elements.md`（UI 要素模板或用户自定义）
+- `document/{工程名}/产品通用规则.md`（所属工程公共规则：角色 / 权限 / 通用 UI 标准 / 术语，生成时须遵循）
 
 > ⚠️ **命名推导（重要）**：需求包（02-page-specs.md）仅含中性「页面[N]」序号与弹窗描述，**不包含** Pencil 页面命名。本阶段负责将需求包映射为 Pencil 命名（主页面 `P{N}_{页面名}` / 弹窗 `P{N}D{M}_{弹窗名}`），该命名只存在于 .pen 文件中，不回写需求包。
 
 ## 输出
 
-- `prototype/{工程名}/{task_dir}/{task_name}.pen`（唯一设计文件，包含所有主页面 + 弹窗页面）
-- `prototype/{工程名}/{task_dir}/screenshots/`（初版截图，每个 Pencil 页面一张）
-- `prototype/{工程名}/{task_dir}/screenshots-reviewed/`（自校验修正后截图）
-- `prototype/{工程名}/{task_dir}/pencil-execution-log.md`（执行日志）
-- 📌 另须同步更新 `任务结果摘要.md` / 追加 `任务操作记录.md` / 刷新 `工程摘要.md`（见「第二部分交付 · 三层记录体系同步」）
+- `document/{工程名}/{task_dir}/{task_name}.pen`（唯一设计文件，包含所有主页面 + 弹窗页面）
+- `document/{工程名}/{task_dir}/screenshots/`（初版截图，每个 Pencil 页面一张）
+- `document/{工程名}/{task_dir}/screenshots-reviewed/`（自校验修正后截图）
+- `document/{工程名}/{task_dir}/pencil-execution-log.md`（执行日志）
+- 📌 另须同步更新 `任务结果摘要.md` / 追加 `任务操作记录.md` / 刷新 `产品工程摘要.md`（见「第二部分交付 · 三层记录体系同步」）
 
 ---
 
@@ -67,7 +67,7 @@ allowed-tools:
 此 `pencil-executor` Skill 仅在以下情况下被触发：
 
 - 用户在初始调用决策中明确同意进行原型设计（对于全新需求）；或
-- 用户指定了 `prototype/{工程名}/{task_dir}` 并明确要求更新/维护现有 `.pen`（包括在原有 `.pen` 中新增页面或修改页面）。
+- 用户指定了 `document/{工程名}/{task_dir}` 并明确要求更新/维护现有 `.pen`（包括在原有 `.pen` 中新增页面或修改页面）。
 
 若上述条件未满足，agent 不应调用本 Skill，流程将在第一部分结束（任务结果摘要 `任务结果摘要.md` 已生成）或仅更新需求包文档。
 
@@ -84,7 +84,7 @@ allowed-tools:
 - **没有** → 读取 `templates/ui-design-elements.md` 模板，生成默认版本写入任务目录
 
 > 📌 **状态与反馈令牌来源**：`ui-design-elements.md` 末尾的「状态-令牌映射参考」节，将 `02-page-specs.md` 中的页面状态（空 / 加载中 / 错误 / 受限 / 正常）与业务反馈（成功 / 警告 / 危险 / 信息）映射到了具体色板令牌（success / warning / danger / info / disabled 等）。绘制**状态变体**与**业务反馈提示**时，必须依据该节选取令牌，不得自行发明颜色。
-> 📌 **遵循工程公共规则**：同时读取所属工程的 `project-common-rules.md`，原型生成须遵循其中的角色可见性、权限关联与通用 UI 标准 / 术语（如某角色不可见的模块，原型中不呈现）。
+> 📌 **遵循工程公共规则**：同时读取所属工程的 `产品通用规则.md`，原型生成须遵循其中的角色可见性、权限关联与通用 UI 标准 / 术语（如某角色不可见的模块，原型中不呈现）。
 
 ---
 
@@ -114,7 +114,7 @@ allowed-tools:
 
 ### Step 4：创建 .pen 文件
 
-1. 创建 `prototype/{工程名}/{task_dir}/{task_name}.pen`
+1. 创建 `document/{工程名}/{task_dir}/{task_name}.pen`
 2. ⚠️ **提示用户立即 Cmd+S 保存**，保存前不得进行任何绘制操作
 
 ---
@@ -130,7 +130,7 @@ allowed-tools:
 - 拆解页面组件，每批 ≤ 15 个操作
 - 引用 `ui-design-elements.md` 中的颜色、字体、间距等设计令牌
 - **状态与反馈令牌**：绘制空态 / 加载中 / 错误 / 受限等状态变体，以及成功 / 警告 / 危险 / 信息等业务反馈时，严格依据 `ui-design-elements.md`「状态-令牌映射参考」节选取令牌（如 danger→#FF3B30、success→#34C759、disabled→#CCCCCC），与 `02-page-specs.md` 中该页「页面状态」「业务规则」语义保持一致
-- **遵循工程公共规则**：按 `project-common-rules.md` 中的角色可见性与通用标准呈现内容（如受限态 / 无权限表现须与规则一致；通用模块 / 术语沿用工程统一表达）
+- **遵循工程公共规则**：按 `产品通用规则.md` 中的角色可见性与通用标准呈现内容（如受限态 / 无权限表现须与规则一致；通用模块 / 术语沿用工程统一表达）
 - **绘制时严格遵守视觉质量约束**（见 Critical 约束 14-19）
 
 #### 5.3 视觉质量自检（绘制完每个主页面后立即执行）
@@ -227,7 +227,7 @@ allowed-tools:
 
 ### Step 8：输出执行日志
 
-写入 `prototype/{工程名}/{task_dir}/pencil-execution-log.md`：
+写入 `document/{工程名}/{task_dir}/pencil-execution-log.md`：
 
 ```markdown
 # Pencil 执行日志
@@ -281,14 +281,14 @@ allowed-tools:
      复核结果：一致 / 偏差已修正 X 处 / 待处理（K 项需人工调整）
    ```
 
-3. **刷新 `工程摘要.md` 对应行**
+3. **刷新 `产品工程摘要.md` 对应行**
    将本任务的「当前状态」更新为「原型完成」，并刷新一句话结论与详情链接（保持索引式·轻）。
 
 > 📌 `pencil-execution-log.md` 仍保留为 Pencil 内部**明细**执行日志；`任务操作记录.md` 是本任务跨需求侧与原型侧的**统一**操作流水（只追加）。两者互补，不冲突。
 
 ### 1. 自校验报告 `validation-report.md`
 
-汇总 Step 7 的自校验结果，写入 `prototype/{工程名}/{task_dir}/validation-report.md`：
+汇总 Step 7 的自校验结果，写入 `document/{工程名}/{task_dir}/validation-report.md`：
 
 ```markdown
 # Pencil 原型自校验报告
@@ -310,7 +310,7 @@ allowed-tools:
 
 ### 2. 原型交付摘要 `delivery-summary.md`
 
-写入 `prototype/{工程名}/{task_dir}/delivery-summary.md`：
+写入 `document/{工程名}/{task_dir}/delivery-summary.md`：
 
 ```markdown
 # 原型交付摘要 — {任务名称}
@@ -331,11 +331,11 @@ allowed-tools:
 ## 概览
 - 主页面: N 个 / 弹窗: M 个
 - 自校验通过: N+M / 需人工调整: K
-- 遵循工程公共规则: 是（project-common-rules.md 中的角色可见性 / 权限 / 通用 UI 标准 / 术语）
+- 遵循工程公共规则: 是（产品通用规则.md 中的角色可见性 / 权限 / 通用 UI 标准 / 术语）
 - 状态与反馈令牌: 均依据 ui-design-elements.md「状态-令牌映射参考」节
 
 ## 工程链路定位
-本 .pen 原型为「产品需求分析 → 技术架构 → 编码」链路中第一环的可选视觉化辅助，供评审 / 下游参考，不影响需求包的下游输入地位。
+本 .pen 原型为「需求分析 → 技术架构 → 编码」链路中第一环的可选视觉化辅助，供评审 / 下游参考，不影响需求包的下游输入地位。
 ```
 
 ### 3. 完成通知
@@ -345,13 +345,13 @@ allowed-tools:
 🎨 Pencil 原型已交付完成
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📁 输出目录: prototype/{工程名}/{task_dir}/
+📁 输出目录: document/{工程名}/{task_dir}/
 📄 设计文件: {task_name}.pen（单文件，含 N 个主页面 + M 个弹窗页面）
 📋 自校验报告: validation-report.md
 📋 交付摘要: delivery-summary.md
 📷 任务结果摘要（原型状态已更新）: 任务结果摘要.md
 📝 操作记录（已追加原型侧条目）: 任务操作记录.md
-📇 工程摘要（已刷新对应行）: 工程摘要.md
+📇 产品工程摘要（已刷新对应行）: 产品工程摘要.md
 📷 截图: screenshots/（初版）· screenshots-reviewed/（修正后）
 
 ─────────────────────────────────────────────────────

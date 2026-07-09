@@ -1,2 +1,5 @@
 # 忽略用户自己的项目工程代码
-prototype/
+document/
+
+# macOS 系统隐藏文件（全目录忽略）
+.DS_Store
