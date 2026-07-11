@@ -1,6 +1,6 @@
 ---
 name: tech-delivery
-description: 技术架构设计收口：生成/原地更新 tech/任务结果摘要.md（基于 03~05/06）；向 tech/任务操作记录.md 追加技术分析智能体（architect-agent）条目；刷新工程级 技术工程摘要.md 对应行；并确保任务级 交接索引.md 已汇总 prd/ 与 tech/ 产物，作为编程智能体输入清单。与需求分析智能体（prototype-agent） delivery Skill 完全独立。
+description: 技术架构设计收口：生成/原地更新 tech/tech-任务结果摘要.md（基于 03/04）；向 tech/tech-任务操作记录.md 追加技术分析智能体（architect-agent）条目；刷新工程级 技术工程摘要.md 对应行；并确保任务级 交接索引.md 已汇总 prd/ 与 tech/ 产物，作为编程智能体输入清单。与需求分析智能体（prototype-agent） delivery Skill 完全独立。
 allowed-tools:
   - Read
   - Write
@@ -13,26 +13,26 @@ allowed-tools:
 # 技术任务结果摘要 Skill
 
 ## 定位
-本 Skill 在「技术设计文档（03~05，可选 06）被新建或修改后的任意时刻」被调用，生成/原地更新技术任务结果摘要，并维护技术分析智能体（architect-agent）记录体系 + 交接索引。
+本 Skill 在「技术设计文档（03/04）被新建或修改后的任意时刻」被调用，生成/原地更新技术任务结果摘要，并维护技术分析智能体（architect-agent）记录体系 + 交接索引。
 - 与需求分析智能体（prototype-agent） `delivery` Skill **完全独立**：文件位于 `tech/` 子目录、工程级索引为 `技术工程摘要.md`、任务级交接索引 `交接索引.md` 在任务根目录。
 - 产物供下游「编程智能体」作为输入；编程智能体读取本任务 `tech/` 子目录即可获得全部技术设计。
 
 ## 触发条件
-- 03~05 全部确认（及 06 如编写）后，生成初始摘要；
+- 03/04 全部确认后，生成初始摘要；
 - 任一技术文档被修改并提交后，刷新摘要。
 
 ## 输入
-- `tech/03-tech-architecture.md` ~ `tech/05-api-design.md`（及 `tech/06-module-design.md` 若存）
+- `tech/03-技术规格说明书.md`、`tech/04-数据模型说明书.md`
 - `../技术通用规则.md`、`../产品通用规则.md`
 
 ## 输出
 
-### 1. tech/任务结果摘要.md（单文件·原地更新）
-- 路径：`document/{工程名}/{task_dir}/tech/任务结果摘要.md`
+### 1. tech/tech-任务结果摘要.md（单文件·原地更新）
+- 路径：`document/{工程名}/{task_dir}/tech/tech-任务结果摘要.md`
 - 结构以 `templates/tech-任务结果摘要.md` 为权威源；首次复制填充占位符，后续原地更新同一文件。
 
-### 2. tech/任务操作记录.md（单文件·只追加）
-- 路径：`document/{工程名}/{task_dir}/tech/任务操作记录.md`
+### 2. tech/tech-任务操作记录.md（单文件·只追加）
+- 路径：`document/{工程名}/{task_dir}/tech/tech-任务操作记录.md`
 - 若文件不存在则复制 `templates/tech-任务操作记录.md` 表头后追加一条技术分析智能体（architect-agent）条目（四字段）。
 
 ### 3. 技术工程摘要.md（工程级·原地更新）
@@ -46,12 +46,12 @@ allowed-tools:
 ## 工作流程
 
 ### Step 1：读取与统计
-读取 03~05/(06) 与工程规则，统计实体/表/接口/错误码/未决项，生成 `tech/任务结果摘要.md`。
+读取 03/04 与工程规则，统计实体/表/接口/错误码/未决项，生成 `tech/tech-任务结果摘要.md`。
 
-### Step 2：写入/更新 tech/任务结果摘要.md
+### Step 2：写入/更新 tech/tech-任务结果摘要.md
 （按 `templates/tech-任务结果摘要.md` 结构落地）
 
-### Step 3：向 tech/任务操作记录.md 追加技术分析智能体（architect-agent）条目
+### Step 3：向 tech/tech-任务操作记录.md 追加技术分析智能体（architect-agent）条目
 （四字段，标记技术设计收口）
 
 ### Step 4：刷新 技术工程摘要.md 对应行
@@ -64,9 +64,9 @@ allowed-tools:
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📐 技术架构设计已定稿
-📁 技术产物: {task_dir}/tech/（03/04/05[+06]）
-📋 技术结果摘要: tech/任务结果摘要.md
-📝 技术操作记录: tech/任务操作记录.md
+📁 技术产物: {task_dir}/tech/（03/04）
+📋 技术结果摘要: tech/tech-任务结果摘要.md
+📝 技术操作记录: tech/tech-任务操作记录.md
 📇 技术工程摘要: 技术工程摘要.md
 🔗 交接索引: 交接索引.md（编程智能体读取 tech/ 即可）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
