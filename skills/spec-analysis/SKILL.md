@@ -11,6 +11,18 @@ allowed-tools:
 
 # 需求解析 Skill — 技术架构阶段 1
 
+## 🛡️ 执行前自检（必做）
+
+执行本 Skill 前必须确认：
+1. ✅ 已读取工程级双文件（技术工程摘要.md + 技术通用规则.md）
+2. ✅ 当前工程名与任务目录明确
+3. ✅ 本 Skill 产出文件归属正确（tech/ 子目录）
+4. ✅ 已明确输入模式（模式 A：读取 prd/01+02；模式 B：用户直接提供）
+
+**若任一项不确定 → 立即执行「CLAUDE.architect.md §上下文恢复检查点」R1-R4 流程。**
+
+---
+
 > 📌 **权威源引用**：术语定义见 `CLAUDE.md §术语对照表`；确认话术见 `AGENTS.architect.md §阶段 1`；模块归纳判据见 `skills/tech-architecture/SKILL.md §Step 1`。
 
 ## 输入（两种模式）

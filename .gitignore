@@ -3,3 +3,6 @@ document/
 
 # macOS 系统隐藏文件（全目录忽略）
 .DS_Store
+
+# workbuddy工作日志
+.workbuddy/

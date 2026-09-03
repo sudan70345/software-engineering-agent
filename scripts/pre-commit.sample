@@ -1,0 +1,45 @@
+#!/bin/bash
+# Pre-commit hook for document validation
+# 安装方式: cp scripts/pre-commit.sample .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+
+set -e
+
+COLOR_BLUE="\033[0;34m"
+COLOR_GREEN="\033[0;32m"
+COLOR_RED="\033[0;31m"
+COLOR_RESET="\033[0m"
+
+echo -e "${COLOR_BLUE}🔍 Pre-commit: 检查待提交的需求包文档...${COLOR_RESET}"
+
+# 检查是否有需求包文档变更
+CHANGED_PRD_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(01-需求规格说明书\.md|02-UI交互规格说明书\.md)' || true)
+
+if [ -z "$CHANGED_PRD_FILES" ]; then
+    echo -e "${COLOR_GREEN}✅ 无需求包文档变更，跳过校验${COLOR_RESET}"
+    exit 0
+fi
+
+echo "发现需求包文档变更:"
+echo "$CHANGED_PRD_FILES" | sed 's/^/  - /'
+echo ""
+
+# 提取任务目录（从第一个变更文件）
+TASK_DIR=$(echo "$CHANGED_PRD_FILES" | head -1 | sed 's|/prd/.*||')
+
+if [ -z "$TASK_DIR" ]; then
+    echo -e "${COLOR_RED}❌ 无法确定任务目录${COLOR_RESET}"
+    exit 1
+fi
+
+# 运行文档校验
+if ./scripts/validate-docs.sh --task-dir "$TASK_DIR/"; then
+    echo -e "${COLOR_GREEN}✅ 文档校验通过，允许提交${COLOR_RESET}"
+    exit 0
+else
+    echo -e "${COLOR_RED}❌ 文档校验失败，阻止提交${COLOR_RESET}"
+    echo ""
+    echo "💡 可选操作:"
+    echo "   1. 修复上述问题后重新提交"
+    echo "   2. 如需临时跳过校验: git commit --no-verify"
+    exit 1
+fi

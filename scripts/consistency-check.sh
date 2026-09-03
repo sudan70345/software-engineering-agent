@@ -34,10 +34,14 @@ echo "=================================================="
 # 检查 1：opencode.json 合法
 # -----------------------------------------------------------------------------
 echo "[1] opencode.json 语法校验"
-if /Users/sudan/.workbuddy/binaries/node/versions/22.22.2/bin/node -e "JSON.parse(require('fs').readFileSync('opencode.json','utf8'))" 2>/dev/null; then
-  check "opencode.json 为合法 JSON" 0
+if command -v node &>/dev/null; then
+  if node -e "JSON.parse(require('fs').readFileSync('opencode.json','utf8'))" 2>/dev/null; then
+    check "opencode.json 为合法 JSON" 0
+  else
+    check "opencode.json 为合法 JSON" 1 "→ 解析失败，请检查格式"
+  fi
 else
-  check "opencode.json 为合法 JSON" 1 "→ 解析失败，请检查格式"
+  check "opencode.json 为合法 JSON" 1 "→ 系统未找到 node 命令，请安装 Node.js"
 fi
 
 # -----------------------------------------------------------------------------
