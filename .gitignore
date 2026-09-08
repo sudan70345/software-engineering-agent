@@ -6,3 +6,9 @@ document/
 
 # workbuddy工作日志
 .workbuddy/
+
+# 需求分析智能体架构大升级的记录文件
+.plans/
+
+# 会话状态快照（scripts/session-state.sh 的输出目录）
+.session_state/

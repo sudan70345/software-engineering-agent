@@ -49,6 +49,7 @@ fi
 # -----------------------------------------------------------------------------
 echo "[2] skill 软链接完整性"
 missing=0; dangling=0; extra=0
+shopt -s nullglob 2>/dev/null   # 目录为空/不存在时 glob 不返回字面量，避免误报
 for d in skills/*/; do
   name="$(basename "$d")"
   if [ ! -e ".opencode/skills/$name" ]; then missing=1; echo "    - 缺链接: $name"; fi
@@ -60,6 +61,7 @@ for l in .opencode/skills/*/; do
   name="$(basename "$l")"
   if [ ! -d "skills/$name" ]; then extra=1; echo "    - 多余链接(无源目录): $name"; fi
 done
+shopt -u nullglob 2>/dev/null
 if [ "$missing$dangling$extra" = "000" ]; then
   check "skills/ 与 .opencode/skills/ 一一对应且无悬空" 0
 else
@@ -85,31 +87,60 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 检查 4：章节号不变量（异常=§13、未决项=§14；全仓无反向矛盾映射）
-#   仅捕获明确矛盾：§13→未决 / §14→异常 / 未决项→§13 / 异常→§14
+# 检查 4：章节号不变量 + 白名单校验
+#   4a. 异常=§9、未决项=§10 的明确矛盾映射
+#   4b. 引用章节号 ∈ 目标文档实际章节号（01/02≤10、03≤5、04≤6、系统要求规范≤6、
+#       系统级技术标准≤10、系统级技术规范≤15、数据表设计约定≤7、00=已废弃）
 # -----------------------------------------------------------------------------
-echo "[4] 章节号不变量 (异常=§13 / 未决项=§14)"
+echo "[4] 章节号不变量 + 白名单校验"
 violation=0
+
+# 4a. 矛盾映射（异常=§9 / 未决项=§10）
 while IFS= read -r m; do
   violation=1; echo "    - 矛盾章节引用: $m"
-  done < <(grep -rnE "§13[^。，、（）()/\n]*未决|§14[^。，、（）()/\n]*异常|未决项[^。，、（）()/\n]*§13|异常[^。，、（）()/\n]*§14" \
-  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ agent/ 2>/dev/null \
-  | grep -v "已知旧术语\|项目审计\|项目质量\|项目评估")
+done < <(grep -rnE "§9[^。，、（）()/\n]*未决|§10[^。，、（）()/\n]*异常|未决项[^。，、（）()/\n]*§9|异常[^。，、（）()/\n]*§10" \
+  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ agent/ docs/快速启动指南.md docs/最佳实践.md 2>/dev/null \
+  | grep -vE "已知旧术语|项目审计|项目质量|项目评估")
+
+# 4b. 章节号白名单校验
+while IFS= read -r ref; do
+  [ -z "$ref" ] && continue
+  doc=$(echo "$ref" | grep -oE '^(01|02|03|04|00|系统要求规范|系统级技术标准|系统级技术规范|数据表设计约定)')
+  sec=$(echo "$ref" | grep -oE '[0-9]+$')
+  [ -z "$doc" ] || [ -z "$sec" ] && continue
+  max=99
+  case "$doc" in
+    01|02) max=10 ;;
+    03) max=5 ;;
+    04) max=6 ;;
+    00) max=0 ;;
+    系统要求规范) max=6 ;;
+    系统级技术标准) max=10 ;;
+    系统级技术规范) max=15 ;;
+    数据表设计约定) max=7 ;;
+  esac
+  if [ "$sec" -gt "$max" ]; then
+    violation=1; echo "    - 越界章节引用: $ref（上限 §$max）"
+  fi
+done < <(grep -rhoE '(01|02|03|04|00|系统要求规范|系统级技术标准|系统级技术规范|数据表设计约定)[[:space:]]*§[0-9]+' \
+  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ agent/ docs/快速启动指南.md docs/最佳实践.md 2>/dev/null \
+  | grep -vE "已知旧术语|项目审计|项目质量|项目评估")
+
 if [ "$violation" -eq 0 ]; then
-  check "全仓无 §13-未决 / §14-异常 矛盾映射" 0
+  check "全仓无矛盾映射且章节号引用均未越界" 0
 else
-  check "全仓无 §13-未决 / §14-异常 矛盾映射" 1
+  check "章节号不变量 + 白名单校验" 1
 fi
 
 # -----------------------------------------------------------------------------
 # 检查 5：禁用旧术语扫描（活动文件中不得出现已废弃术语；排除 self-check 的已知术语清单行）
 # -----------------------------------------------------------------------------
 echo "[5] 禁用旧术语扫描"
-hits=$(grep -rnE "接口规划|逐条标注|05-接口设计|06-模块详细设计" \
-  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ agent/ 2>/dev/null \
-  | grep -v "已知旧术语\|项目审计\|项目质量\|项目评估")
+hits=$(grep -rnE "接口规划|逐条标注|05-接口设计|06-模块详细设计|产品通用规则|产品工程摘要|技术工程摘要|00[ -]系统概览" \
+  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ agent/ docs/快速启动指南.md docs/最佳实践.md 2>/dev/null \
+  | grep -vE "已知旧术语|项目审计|项目质量|项目评估")
 if [ -z "$hits" ]; then
-  check "活动文件中无废弃旧术语（接口规划/逐条标注/05-接口设计/06-模块详细设计）" 0
+  check "活动文件中无废弃旧术语（接口规划/逐条标注/05-06/产品通用规则/产品工程摘要/技术工程摘要/00-系统概览等已删模板名）" 0
 else
   files=$(echo "$hits" | cut -d: -f1 | sort -u | tr '\n' ' ')
   check "活动文件中无废弃旧术语" 1 "→ 命中文件: $files"

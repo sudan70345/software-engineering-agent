@@ -1,6 +1,6 @@
 #!/bin/bash
 # 文档一致性自动化校验脚本
-# 用途：检查需求包（01-需求规格说明书.md + 02-UI交互规格说明书.md）的完整性和一致性
+# 用途：检查需求包（系统级 系统要求规范 + 系统交互规范 + 模块级 01/02）的完整性和一致性
 # 使用场景：pre-commit hook、CI pipeline、手动校验
 
 set -e
@@ -35,13 +35,13 @@ check_item() {
 }
 
 # 解析参数
-TASK_DIR=""
+SYSTEM_DIR=""
 STRICT_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --task-dir)
-            TASK_DIR="$2"
+        --system-dir)
+            SYSTEM_DIR="$2"
             shift 2
             ;;
         --strict)
@@ -49,12 +49,12 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help)
-            echo "用法: $0 [--task-dir <任务目录>] [--strict]"
+            echo "用法: $0 [--system-dir <系统目录>] [--strict]"
             echo ""
             echo "选项:"
-            echo "  --task-dir <路径>  指定要检查的任务目录（默认：自动扫描最新任务）"
-            echo "  --strict           严格模式（警告也视为失败）"
-            echo "  --help             显示此帮助信息"
+            echo "  --system-dir <路径>  指定要检查的系统目录（默认：自动扫描最新系统）"
+            echo "  --strict             严格模式（警告也视为失败）"
+            echo "  --help               显示此帮助信息"
             exit 0
             ;;
         *)
@@ -65,110 +65,146 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# 如果未指定任务目录，自动扫描最新任务
-if [ -z "$TASK_DIR" ]; then
-    LATEST_PROJECT=$(ls -d document/*/ 2>/dev/null | head -1)
-    if [ -n "$LATEST_PROJECT" ]; then
-        TASK_DIR=$(ls -d ${LATEST_PROJECT}*_[0-9]*/ 2>/dev/null | sort | tail -1)
-    fi
+# 如果未指定系统目录，自动扫描最新系统（document/{项目名}/{系统名}/ 下含 prd/）
+if [ -z "$SYSTEM_DIR" ]; then
+    SYSTEM_DIR=$(ls -td document/*/*/prd 2>/dev/null | head -1 | sed 's|/prd$||')
 fi
 
-if [ -z "$TASK_DIR" ] || [ ! -d "$TASK_DIR" ]; then
-    echo -e "${COLOR_RED}❌ 未找到有效的任务目录${COLOR_RESET}"
-    echo "请使用 --task-dir 指定任务目录"
+if [ -z "$SYSTEM_DIR" ] || [ ! -d "$SYSTEM_DIR" ]; then
+    echo -e "${COLOR_RED}❌ 未找到有效的系统目录${COLOR_RESET}"
+    echo "请使用 --system-dir 指定系统目录"
     exit 1
 fi
 
-echo -e "${COLOR_BLUE}🔍 检查任务: $TASK_DIR${COLOR_RESET}"
+echo -e "${COLOR_BLUE}🔍 检查系统: $SYSTEM_DIR${COLOR_RESET}"
 echo ""
 
-# 文件路径
-PRD_01="${TASK_DIR}prd/01-需求规格说明书.md"
-PRD_02="${TASK_DIR}prd/02-UI交互规格说明书.md"
-PRD_SUMMARY="${TASK_DIR}prd/prd-任务结果摘要.md"
-PRD_LOG="${TASK_DIR}prd/prd-任务操作记录.md"
+# 目录路径
+PRD_DIR="${SYSTEM_DIR}/prd"
+MODULES_DIR="${PRD_DIR}/modules"
+PRD_SPEC="${PRD_DIR}/系统要求规范.md"
+PRD_INTERACTION="${PRD_DIR}/系统交互规范.md"
+PRD_SUMMARY="${PRD_DIR}/prd-系统结果摘要.md"
+PRD_LOG="${PRD_DIR}/prd-系统操作记录.md"
 
 # ============================================
 # 检查 1: 必要文件存在性
 # ============================================
 echo "【检查 1】必要文件存在性"
 
-if [ -f "$PRD_01" ]; then
-    check_item "01-需求规格说明书.md 存在" "pass"
+if [ -f "$PRD_SPEC" ]; then
+    check_item "系统要求规范.md 存在" "pass"
 else
-    check_item "01-需求规格说明书.md 存在" "fail"
+    check_item "系统要求规范.md 存在" "fail"
     echo "   文件不存在，跳过后续检查"
     exit 1
 fi
 
-if [ -f "$PRD_02" ]; then
-    check_item "02-UI交互规格说明书.md 存在" "pass"
+if [ -f "$PRD_INTERACTION" ]; then
+    check_item "系统交互规范.md 存在" "pass"
 else
-    check_item "02-UI交互规格说明书.md 存在" "fail"
-    echo "   文件不存在，跳过后续检查"
+    check_item "系统交互规范.md 存在" "warn"
+fi
+
+if [ -d "$MODULES_DIR" ] && [ -n "$(ls -A "$MODULES_DIR" 2>/dev/null)" ]; then
+    MODULE_COUNT=$(ls -d "$MODULES_DIR"/*/ 2>/dev/null | wc -l | tr -d ' ')
+    check_item "modules/ 目录存在（$MODULE_COUNT 个模块）" "pass"
+else
+    MODULE_COUNT=0
+    check_item "modules/ 目录存在且非空" "fail"
+    echo "   无模块级 01/02 文件，跳过后续检查"
     exit 1
 fi
 
 if [ -f "$PRD_SUMMARY" ]; then
-    check_item "prd-任务结果摘要.md 存在" "pass"
+    check_item "prd-系统结果摘要.md 存在" "pass"
 else
-    check_item "prd-任务结果摘要.md 存在" "warn"
+    check_item "prd-系统结果摘要.md 存在" "warn"
 fi
 
 if [ -f "$PRD_LOG" ]; then
-    check_item "prd-任务操作记录.md 存在" "pass"
+    check_item "prd-系统操作记录.md 存在" "pass"
 else
-    check_item "prd-任务操作记录.md 存在" "warn"
+    check_item "prd-系统操作记录.md 存在" "warn"
 fi
 
 echo ""
 
 # ============================================
-# 检查 2: FR-x 编号连续性
+# 检查 2: 每个模块 01/02 文件成对存在
 # ============================================
-echo "【检查 2】FR-x 编号连续性"
+echo "【检查 2】模块 01/02 文件成对存在"
 
-FR_LIST=$(grep -oE 'FR-[0-9]+' "$PRD_01" | sort -u | sed 's/FR-//' | sort -n)
-FR_COUNT=$(echo "$FR_LIST" | wc -w)
+MISSING_PAIR=0
+for mod_dir in "$MODULES_DIR"/*/; do
+    mod_name=$(basename "$mod_dir")
+    if [ ! -f "${mod_dir}01-${mod_name}-需求规格.md" ]; then
+        echo "   缺少: ${mod_dir}01-${mod_name}-需求规格.md"
+        MISSING_PAIR=1
+    fi
+    if [ ! -f "${mod_dir}02-${mod_name}-UI交互规格.md" ]; then
+        echo "   缺少: ${mod_dir}02-${mod_name}-UI交互规格.md"
+        MISSING_PAIR=1
+    fi
+done
 
-if [ "$FR_COUNT" -eq 0 ]; then
-    check_item "FR-x 编号连续性" "warn"
-    echo "   未找到任何 FR-x 编号"
+if [ "$MISSING_PAIR" -eq 0 ]; then
+    check_item "全部模块 01/02 文件成对存在" "pass"
 else
-    # 检查是否连续
+    check_item "模块 01/02 文件成对存在" "fail"
+fi
+
+echo ""
+
+# ============================================
+# 检查 3: FR-x 编号连续性（模块内连续）
+# ============================================
+echo "【检查 3】FR-x 编号连续性（模块内）"
+
+FR_TOTAL=0
+FR_DISCONT=0
+for req_file in "$MODULES_DIR"/*/01-*-需求规格.md; do
+    [ -f "$req_file" ] || continue
+    mod_name=$(basename "$(dirname "$req_file")")
+    FR_LIST=$(grep -oE 'FR-[0-9]+' "$req_file" | sort -u | sed 's/FR-//' | sort -n)
+    FR_COUNT=$(echo "$FR_LIST" | wc -w | tr -d ' ')
+    [ "$FR_COUNT" -eq 0 ] && continue
+    FR_TOTAL=$((FR_TOTAL + FR_COUNT))
+
     EXPECTED=1
-    IS_CONTINUOUS=true
     for num in $FR_LIST; do
         if [ "$num" -ne "$EXPECTED" ]; then
-            IS_CONTINUOUS=false
+            FR_DISCONT=1
+            echo "   模块 ${mod_name} FR-x 跳号: $FR_LIST"
             break
         fi
         EXPECTED=$((EXPECTED + 1))
     done
+done
 
-    if [ "$IS_CONTINUOUS" = true ]; then
-        check_item "FR-x 编号连续（FR-1 到 FR-$FR_COUNT）" "pass"
-    else
-        check_item "FR-x 编号连续性" "fail"
-        echo "   发现跳号或乱序: $FR_LIST"
-    fi
+if [ "$FR_TOTAL" -eq 0 ]; then
+    check_item "FR-x 编号连续性" "warn"
+    echo "   未找到任何 FR-x 编号"
+elif [ "$FR_DISCONT" -eq 0 ]; then
+    check_item "FR-x 编号连续（共 $FR_TOTAL 条）" "pass"
+else
+    check_item "FR-x 编号连续性" "fail"
 fi
 
 echo ""
 
 # ============================================
-# 检查 3: 场景[Sx] 编号连续性
+# 检查 4: 场景[Sx] 编号连续性（系统要求规范 §2）
 # ============================================
-echo "【检查 3】场景[Sx] 编号连续性"
+echo "【检查 4】场景[Sx] 编号连续性"
 
-SCENE_LIST=$(grep -oE '场景\[S[0-9]+\]' "$PRD_01" | sed 's/场景\[S//' | sed 's/\]//' | sort -u | sort -n)
-SCENE_COUNT=$(echo "$SCENE_LIST" | wc -w)
+SCENE_LIST=$(grep -oE '场景\[S[0-9]+\]' "$PRD_SPEC" | sed 's/场景\[S//' | sed 's/\]//' | sort -u | sort -n)
+SCENE_COUNT=$(echo "$SCENE_LIST" | wc -w | tr -d ' ')
 
 if [ "$SCENE_COUNT" -eq 0 ]; then
     check_item "场景[Sx] 编号连续性" "warn"
     echo "   未找到任何场景[Sx] 编号"
 else
-    # 检查是否连续
     EXPECTED=1
     IS_CONTINUOUS=true
     for num in $SCENE_LIST; do
@@ -190,76 +226,61 @@ fi
 echo ""
 
 # ============================================
-# 检查 4: 页面[N] 与 02 §4 一致性
+# 检查 5: 输入/输出/校验/异常章节完整性（01 §5/§6/§7/§9）
 # ============================================
-echo "【检查 4】页面[N] 与 02 §4 一致性"
+echo "【检查 5】01 章节完整性（§5 输入/§6 输出/§7 校验/§9 异常）"
 
-# 从 02 §3 页面总览提取页面清单
-PAGES_IN_OVERVIEW=$(grep -oE '页面\[[0-9]+(-[A-Z])?\]' "$PRD_02" | grep -E '^\| 页面' | awk '{print $2}' | sort -u)
+SECTION_MISSING=0
+for req_file in "$MODULES_DIR"/*/01-*-需求规格.md; do
+    [ -f "$req_file" ] || continue
+    mod_name=$(basename "$(dirname "$req_file")")
 
-# 从 02 §4 提取实际存在的页面章节
-PAGES_IN_SECTION4=$(grep -oE '^### 页面\[[0-9]+(-[A-Z])?\]' "$PRD_02" | sed 's/### //' | sed 's/:.*//' | sort -u)
+    HAS_S5=$(grep -cE '^## 5\. 输入' "$req_file" || true)
+    HAS_S6=$(grep -cE '^## 6\. 输出' "$req_file" || true)
+    HAS_S7=$(grep -cE '^## 7\. 校验' "$req_file" || true)
+    HAS_S9=$(grep -cE '^## 9\. 异常' "$req_file" || true)
 
-PAGES_IN_OVERVIEW_COUNT=$(echo "$PAGES_IN_OVERVIEW" | wc -w)
-PAGES_IN_SECTION4_COUNT=$(echo "$PAGES_IN_SECTION4" | wc -w)
-
-if [ "$PAGES_IN_OVERVIEW_COUNT" -eq 0 ] || [ "$PAGES_IN_SECTION4_COUNT" -eq 0 ]; then
-    check_item "页面[N] 与 §4 一致性" "warn"
-    echo "   页面总览或 §4 内容为空，跳过检查"
-else
-    # 简单比较数量（严格比较需要更复杂的逻辑）
-    if [ "$PAGES_IN_OVERVIEW_COUNT" -eq "$PAGES_IN_SECTION4_COUNT" ]; then
-        check_item "页面[N] 数量一致（总览 $PAGES_IN_OVERVIEW_COUNT = §4 $PAGES_IN_SECTION4_COUNT）" "pass"
-    else
-        check_item "页面[N] 数量一致" "fail"
-        echo "   总览: $PAGES_IN_OVERVIEW_COUNT 页，§4: $PAGES_IN_SECTION4_COUNT 页"
+    if [ "$HAS_S5" -eq 0 ] || [ "$HAS_S6" -eq 0 ] || [ "$HAS_S7" -eq 0 ] || [ "$HAS_S9" -eq 0 ]; then
+        echo "   模块 ${mod_name} 缺少章节: §5输入/$HAS_S5 §6输出/$HAS_S6 §7校验/$HAS_S7 §9异常/$HAS_S9"
+        SECTION_MISSING=1
     fi
+done
+
+if [ "$SECTION_MISSING" -eq 0 ]; then
+    check_item "全部 01 文件具备 §5/§6/§7/§9 章节" "pass"
+else
+    check_item "01 章节完整性" "fail"
 fi
 
 echo ""
 
 # ============================================
-# 检查 5: FR-x 的输入/输出/校验/异常完整性
+# 检查 6: 版本号一致性（同模块 01/02 版本一致）
 # ============================================
-echo "【检查 5】FR-x 的输入/输出/校验/异常完整性"
+echo "【检查 6】版本号一致性（同模块 01/02）"
 
-if [ "$FR_COUNT" -gt 0 ]; then
-    # 检查 §10-§13 是否存在
-    HAS_SECTION_10=$(grep -c '^## 10\. 输入' "$PRD_01" || echo "0")
-    HAS_SECTION_11=$(grep -c '^## 11\. 输出' "$PRD_01" || echo "0")
-    HAS_SECTION_12=$(grep -c '^## 12\. 校验' "$PRD_01" || echo "0")
-    HAS_SECTION_13=$(grep -c '^## 13\. 异常' "$PRD_01" || echo "0")
+VERSION_MISMATCH=0
+for mod_dir in "$MODULES_DIR"/*/; do
+    mod_name=$(basename "$mod_dir")
+    req_file="${mod_dir}01-${mod_name}-需求规格.md"
+    ui_file="${mod_dir}02-${mod_name}-UI交互规格.md"
+    [ -f "$req_file" ] && [ -f "$ui_file" ] || continue
 
-    if [ "$HAS_SECTION_10" -gt 0 ] && [ "$HAS_SECTION_11" -gt 0 ] && \
-       [ "$HAS_SECTION_12" -gt 0 ] && [ "$HAS_SECTION_13" -gt 0 ]; then
-        check_item "§10-§13 章节存在" "pass"
-    else
-        check_item "§10-§13 章节存在" "fail"
-        echo "   缺少必要章节（§10 输入/§11 输出/§12 校验/§13 异常）"
+    VERSION_01=$(grep -E '^\*\*文档版本\*\*: v[0-9]+\.[0-9]+' "$req_file" | head -1 | grep -oE 'v[0-9]+\.[0-9]+')
+    VERSION_02=$(grep -E '^\*\*文档版本\*\*: v[0-9]+\.[0-9]+' "$ui_file" | head -1 | grep -oE 'v[0-9]+\.[0-9]+')
+
+    if [ -z "$VERSION_01" ] || [ -z "$VERSION_02" ]; then
+        continue
+    elif [ "$VERSION_01" != "$VERSION_02" ]; then
+        echo "   模块 ${mod_name} 版本不一致: 01=$VERSION_01, 02=$VERSION_02"
+        VERSION_MISMATCH=1
     fi
-else
-    check_item "FR-x 输入/输出/校验/异常完整性" "warn"
-    echo "   无 FR-x，跳过检查"
-fi
+done
 
-echo ""
-
-# ============================================
-# 检查 6: 版本号一致性
-# ============================================
-echo "【检查 6】版本号一致性"
-
-VERSION_01=$(grep -E '^- 文档版本: v[0-9]+\.[0-9]+' "$PRD_01" | head -1 | grep -oE 'v[0-9]+\.[0-9]+')
-VERSION_02=$(grep -E '^- 文档版本: v[0-9]+\.[0-9]+' "$PRD_02" | head -1 | grep -oE 'v[0-9]+\.[0-9]+')
-
-if [ -z "$VERSION_01" ] || [ -z "$VERSION_02" ]; then
-    check_item "版本号一致性" "warn"
-    echo "   未找到版本号信息"
-elif [ "$VERSION_01" = "$VERSION_02" ]; then
-    check_item "版本号一致（01 与 02 均为 $VERSION_01）" "pass"
+if [ "$VERSION_MISMATCH" -eq 0 ]; then
+    check_item "同模块 01/02 版本号一致" "pass"
 else
     check_item "版本号一致性" "fail"
-    echo "   01: $VERSION_01，02: $VERSION_02"
 fi
 
 echo ""
@@ -269,33 +290,39 @@ echo ""
 # ============================================
 echo "【检查 7】职责边界（禁止技术实现）"
 
-# 检查是否包含接口定义（/api/、RESTful、HTTP method）
-FORBIDDEN_PATTERN_1=$(grep -ciE '(^|[^a-z])(GET|POST|PUT|DELETE|PATCH)[[:space:]]*/[a-z]|/api/[a-z]|RESTful' "$PRD_01" || echo "0")
+FORBIDDEN_API=0
+FORBIDDEN_DB=0
+FORBIDDEN_STACK=0
+for req_file in "$MODULES_DIR"/*/01-*-需求规格.md; do
+    [ -f "$req_file" ] || continue
 
-# 检查是否包含数据库表名（CREATE TABLE、ALTER TABLE、表名模式）
-FORBIDDEN_PATTERN_2=$(grep -ciE 'CREATE TABLE|ALTER TABLE|DROP TABLE|表名:|字段类型:' "$PRD_01" || echo "0")
+    n1=$(grep -ciE '(^|[^a-z])(GET|POST|PUT|DELETE|PATCH)[[:space:]]*/[a-z]|/api/[a-z]|RESTful' "$req_file" || echo "0")
+    n2=$(grep -ciE 'CREATE TABLE|ALTER TABLE|DROP TABLE|表名:|字段类型:' "$req_file" || echo "0")
+    n3=$(grep -ciE '(Redis|Kafka|MySQL|MongoDB|PostgreSQL|Elasticsearch)' "$req_file" || echo "0")
 
-# 检查是否包含技术选型（Redis、Kafka、MySQL、MongoDB 等明确中间件）
-FORBIDDEN_PATTERN_3=$(grep -ciE '(Redis|Kafka|MySQL|MongoDB|PostgreSQL|Elasticsearch)' "$PRD_01" || echo "0")
+    FORBIDDEN_API=$((FORBIDDEN_API + n1))
+    FORBIDDEN_DB=$((FORBIDDEN_DB + n2))
+    FORBIDDEN_STACK=$((FORBIDDEN_STACK + n3))
+done
 
-if [ "$FORBIDDEN_PATTERN_1" -gt 0 ]; then
+if [ "$FORBIDDEN_API" -gt 0 ]; then
     check_item "无接口定义" "fail"
-    echo "   发现 $FORBIDDEN_PATTERN_1 处疑似接口定义（/api/、RESTful、HTTP method）"
+    echo "   发现 $FORBIDDEN_API 处疑似接口定义（/api/、RESTful、HTTP method）"
 else
     check_item "无接口定义" "pass"
 fi
 
-if [ "$FORBIDDEN_PATTERN_2" -gt 0 ]; then
+if [ "$FORBIDDEN_DB" -gt 0 ]; then
     check_item "无数据模型" "fail"
-    echo "   发现 $FORBIDDEN_PATTERN_2 处疑似数据模型定义（CREATE TABLE、表名、字段类型）"
+    echo "   发现 $FORBIDDEN_DB 处疑似数据模型定义（CREATE TABLE、表名、字段类型）"
 else
     check_item "无数据模型" "pass"
 fi
 
-if [ "$FORBIDDEN_PATTERN_3" -gt 0 ]; then
+if [ "$FORBIDDEN_STACK" -gt 0 ]; then
     check_item "无技术选型" "warn"
-    echo "   发现 $FORBIDDEN_PATTERN_3 处疑似技术选型（Redis/Kafka/MySQL 等中间件）"
-    echo "   提示：如为业务术语（如「用户在 Redis 商城下单」）可忽略；如为技术实现需移至 03"
+    echo "   发现 $FORBIDDEN_STACK 处疑似技术选型（Redis/Kafka/MySQL 等中间件）"
+    echo "   提示：如为业务术语可忽略；如为技术实现需移至 tech/ 03"
 else
     check_item "无技术选型" "pass"
 fi
@@ -323,10 +350,10 @@ else
     echo -e "${COLOR_RED}❌ 文档存在完整性或一致性问题${COLOR_RESET}"
     echo ""
     echo "💡 修复建议："
-    echo "   1. FR-x 编号不连续：检查 01 §7 功能要点，确保 FR-1、FR-2、... 连续"
-    echo "   2. 页面[N] 不一致：检查 02 §3 页面总览与 §4 逐页规格是否对齐"
-    echo "   3. 输入/输出/校验/异常缺失：检查 01 §10-§13，每个 FR 应有对应条目或标「无」"
-    echo "   4. 版本号不一致：检查 01 和 02 的文档版本是否相同"
-    echo "   5. 职责边界违反：01-需求规格说明书.md 不应包含接口定义、数据模型、技术选型"
+    echo "   1. 模块 01/02 文件缺失：检查 系统要求规范.md §5 模块清单与 modules/ 目录是否对齐"
+    echo "   2. FR-x 编号不连续：检查各模块 01 §2 功能要点，确保 FR-1、FR-2、... 连续"
+    echo "   3. 章节缺失：检查 01 §5 输入/§6 输出/§7 校验/§9 异常"
+    echo "   4. 版本号不一致：检查同模块 01 和 02 的文档版本是否相同"
+    echo "   5. 职责边界违反：01-*-需求规格.md 不应包含接口定义、数据模型、技术选型"
     exit 1
 fi

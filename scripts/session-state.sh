@@ -14,33 +14,32 @@ mkdir -p "$STATE_DIR"
 # 提取当前工程上下文
 extract_context() {
     local project_name=""
-    local task_dir=""
+    local system_dir=""
     local stage=""
     local checkpoint=""
 
     # 尝试从最近的操作记录中提取
-    if [ -f "document/*/*/prd/prd-任务操作记录.md" ]; then
-        local latest_record=$(find document -name "prd-任务操作记录.md" -o -name "tech-任务操作记录.md" | sort | tail -1)
-        if [ -n "$latest_record" ]; then
-            project_name=$(echo "$latest_record" | cut -d'/' -f2)
-            task_dir=$(echo "$latest_record" | cut -d'/' -f3)
-            stage=$(grep -m1 "当前阶段" "$latest_record" | sed 's/.*: //')
-        fi
+    local latest_record=$(find document \( -name "prd-系统操作记录.md" -o -name "tech-系统操作记录.md" \) -type f 2>/dev/null | xargs ls -t 2>/dev/null | head -1)
+    if [ -n "$latest_record" ]; then
+        project_name=$(echo "$latest_record" | cut -d'/' -f2)
+        system_dir=$(echo "$latest_record" | cut -d'/' -f3)
+        stage=$(grep -m1 "当前阶段" "$latest_record" | sed 's/.*: //')
     fi
 
     cat > "$SNAPSHOT_FILE" <<EOF
 {
   "timestamp": "$TIMESTAMP",
   "project_name": "$project_name",
-  "task_dir": "$task_dir",
+  "system_dir": "$system_dir",
   "stage": "$stage",
   "checkpoint": "$checkpoint",
   "files": {
-    "project_summary": "document/$project_name/产品工程摘要.md",
-    "product_rules": "document/$project_name/产品通用规则.md",
-    "tech_rules": "document/$project_name/技术通用规则.md",
-    "task_result": "document/$project_name/$task_dir/prd/prd-任务结果摘要.md",
-    "task_log": "document/$project_name/$task_dir/prd/prd-任务操作记录.md"
+    "project_summary": "document/$project_name/项目级产品摘要.md",
+    "generic_exception": "document/$project_name/通用异常处理.md",
+    "generic_validation": "document/$project_name/通用校验规则.md",
+    "tech_standards": "document/$project_name/$system_dir/tech/系统级技术标准.md",
+    "system_result": "document/$project_name/$system_dir/prd/prd-系统结果摘要.md",
+    "system_log": "document/$project_name/$system_dir/prd/prd-系统操作记录.md"
   }
 }
 EOF

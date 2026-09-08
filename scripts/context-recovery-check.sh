@@ -38,67 +38,67 @@ warn_item() {
 echo "🔍 开始上下文恢复自检..."
 echo ""
 
-# R1: 工程名是否明确
-echo "【R1】工程名与任务目录"
+# R1: 项目名是否明确
+echo "【R1】项目名与系统目录"
 if [ -d "document" ]; then
     PROJECTS=$(ls -d document/*/ 2>/dev/null | wc -l)
     if [ "$PROJECTS" -gt 0 ]; then
-        check_item "document/ 目录存在且包含工程" "[ $PROJECTS -gt 0 ]"
-        echo "   发现 $PROJECTS 个工程项目"
+        check_item "document/ 目录存在且包含项目" "[ $PROJECTS -gt 0 ]"
+        echo "   发现 $PROJECTS 个项目"
     else
-        check_item "document/ 目录存在且包含工程" "false"
+        check_item "document/ 目录存在且包含项目" "false"
     fi
 else
     check_item "document/ 目录存在" "false"
 fi
 echo ""
 
-# R2: 工程级双文件是否存在
-echo "【R2】工程级双文件检查"
-LATEST_PROJECT=$(ls -d document/*/ 2>/dev/null | head -1)
+# R2: 项目级文件检查
+echo "【R2】项目级文件检查"
+LATEST_PROJECT=$(ls -td document/*/ 2>/dev/null | head -1)
 if [ -n "$LATEST_PROJECT" ]; then
     PROJECT_NAME=$(basename "$LATEST_PROJECT")
-    check_item "产品工程摘要.md 存在" "[ -f '${LATEST_PROJECT}产品工程摘要.md' ]"
-    check_item "产品通用规则.md 存在" "[ -f '${LATEST_PROJECT}产品通用规则.md' ]"
-
-    if [ -f "${LATEST_PROJECT}技术通用规则.md" ]; then
-        check_item "技术通用规则.md 存在" "true"
-    else
-        warn_item "技术通用规则.md 不存在（仅技术侧需要）"
-    fi
+    check_item "项目级产品摘要.md 存在" "[ -f '${LATEST_PROJECT}项目级产品摘要.md' ]"
+    check_item "通用异常处理.md 存在" "[ -f '${LATEST_PROJECT}通用异常处理.md' ]"
+    check_item "通用校验规则.md 存在" "[ -f '${LATEST_PROJECT}通用校验规则.md' ]"
 else
-    echo "  无工程项目，跳过检查"
+    echo "  无项目，跳过检查"
 fi
 echo ""
 
-# R3: 当前任务上下文
-echo "【R3】当前任务上下文"
+# R3: 当前系统上下文
+echo "【R3】当前系统上下文"
 if [ -n "$LATEST_PROJECT" ]; then
-    LATEST_TASK=$(ls -d ${LATEST_PROJECT}*_[0-9]*/ 2>/dev/null | sort | tail -1)
-    if [ -n "$LATEST_TASK" ]; then
-        TASK_DIR=$(basename "$LATEST_TASK")
-        check_item "最近任务目录: $TASK_DIR" "true"
+    LATEST_SYSTEM=$(ls -td ${LATEST_PROJECT}*/ 2>/dev/null | head -1)
+    if [ -n "$LATEST_SYSTEM" ]; then
+        SYSTEM_DIR=$(basename "$LATEST_SYSTEM")
+        check_item "最近系统目录: $SYSTEM_DIR" "true"
 
-        # 检查任务产物
-        if [ -f "${LATEST_TASK}prd/01-需求规格说明书.md" ]; then
-            check_item "需求规格说明书存在" "true"
+        # 检查系统产物
+        if [ -f "${LATEST_SYSTEM}prd/系统要求规范.md" ]; then
+            check_item "系统要求规范.md 存在" "true"
         fi
 
-        if [ -f "${LATEST_TASK}prd/02-UI交互规格说明书.md" ]; then
-            check_item "UI交互规格说明书存在" "true"
+        if [ -f "${LATEST_SYSTEM}prd/系统交互规范.md" ]; then
+            check_item "系统交互规范.md 存在" "true"
         fi
 
-        if [ -f "${LATEST_TASK}prd/prd-任务结果摘要.md" ]; then
-            check_item "任务结果摘要存在" "true"
+        if [ -d "${LATEST_SYSTEM}prd/modules" ] && [ -n "$(ls -A "${LATEST_SYSTEM}prd/modules" 2>/dev/null)" ]; then
+            MODULE_COUNT=$(ls -d "${LATEST_SYSTEM}prd/modules"/*/ 2>/dev/null | wc -l | tr -d ' ')
+            check_item "模块级 01/02 文件存在（$MODULE_COUNT 个模块）" "true"
+        fi
+
+        if [ -f "${LATEST_SYSTEM}prd/prd-系统结果摘要.md" ]; then
+            check_item "系统结果摘要存在" "true"
 
             # 提取当前阶段
-            STAGE=$(grep "当前阶段" "${LATEST_TASK}prd/prd-任务结果摘要.md" 2>/dev/null | head -1 | sed 's/.*: //')
+            STAGE=$(grep "当前阶段" "${LATEST_SYSTEM}prd/prd-系统结果摘要.md" 2>/dev/null | head -1 | sed 's/.*: //')
             if [ -n "$STAGE" ]; then
                 echo "   📌 当前阶段: $STAGE"
             fi
         fi
     else
-        warn_item "工程 $PROJECT_NAME 下暂无任务"
+        warn_item "项目 $PROJECT_NAME 下暂无系统"
     fi
 else
     echo "  无工程项目，跳过检查"
@@ -134,9 +134,9 @@ else
     echo -e "${COLOR_RED}❌ 上下文缺失关键信息，建议执行恢复流程${COLOR_RESET}"
     echo ""
     echo "💡 恢复提示："
-    echo "   1. 如果是新会话，先扫描 document/ 下工程列表"
-    echo "   2. 读取目标工程的 产品工程摘要.md + 产品通用规则.md"
-    echo "   3. 如果继续技术设计，还需读取 技术通用规则.md"
-    echo "   4. 确定要操作的任务目录后，读取对应的结果摘要和操作记录"
+    echo "   1. 如果是新会话，先扫描 document/ 下项目列表"
+    echo "   2. 读取目标项目的 项目级产品摘要.md + 通用异常处理.md + 通用校验规则.md"
+    echo "   3. 如果继续技术设计，还需读取系统的 tech/系统级技术标准.md 与 系统级技术规范.md"
+    echo "   4. 确定要操作的系统目录后，读取对应的结果摘要和操作记录"
     exit 1
 fi
