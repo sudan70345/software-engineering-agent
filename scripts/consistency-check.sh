@@ -89,8 +89,8 @@ fi
 # -----------------------------------------------------------------------------
 # 检查 4：章节号不变量 + 白名单校验
 #   4a. 异常=§9、未决项=§10 的明确矛盾映射
-#   4b. 引用章节号 ∈ 目标文档实际章节号（01/02≤10、03≤5、04≤6、系统要求规范≤6、
-#       系统级技术标准≤10、系统级技术规范≤15、数据表设计约定≤7、00=已废弃）
+#   4b. 引用章节号 ∈ 目标文档实际章节号（01/02≤10、03≤5、04≤6、05≤10、系统要求规范≤6、
+#       系统级技术标准≤6、系统级技术规范≤16、数据表设计约定≤3、接口契约≤6、代码工程结构说明≤1、00=已废弃）
 # -----------------------------------------------------------------------------
 echo "[4] 章节号不变量 + 白名单校验"
 violation=0
@@ -98,14 +98,17 @@ violation=0
 # 4a. 矛盾映射（异常=§9 / 未决项=§10）
 while IFS= read -r m; do
   violation=1; echo "    - 矛盾章节引用: $m"
+# 4a 的 §9/§10 语义假设源自 01/02 的编号（01/02：§9 异常、§10 未决项）；05 的编号不同（§9 未决项、§10 版本记录），
+# 故排除 self-check「章节号基准」登记行（形如 ">   - 05 xxx：§0 ... / §9 未决项 / §10 版本记录。"）——该类行是编号登记而非交叉引用。
+# 登记行本身仍受 4b 白名单校验覆盖。
 done < <(grep -rnE "§9[^。，、（）()/\n]*未决|§10[^。，、（）()/\n]*异常|未决项[^。，、（）()/\n]*§9|异常[^。，、（）()/\n]*§10" \
-  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ agent/ docs/快速启动指南.md docs/最佳实践.md 2>/dev/null \
-  | grep -vE "已知旧术语|项目审计|项目质量|项目评估")
+  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ docs/快速启动指南.md docs/最佳实践.md 2>/dev/null \
+  | grep -vE "已知旧术语|项目审计|项目质量|项目评估|:>   - ")
 
 # 4b. 章节号白名单校验
 while IFS= read -r ref; do
   [ -z "$ref" ] && continue
-  doc=$(echo "$ref" | grep -oE '^(01|02|03|04|00|系统要求规范|系统级技术标准|系统级技术规范|数据表设计约定)')
+  doc=$(echo "$ref" | grep -oE '^(01|02|03|04|05|00|系统要求规范|系统级技术标准|系统级技术规范|数据表设计约定|接口契约|代码工程结构说明)')
   sec=$(echo "$ref" | grep -oE '[0-9]+$')
   [ -z "$doc" ] || [ -z "$sec" ] && continue
   max=99
@@ -113,17 +116,20 @@ while IFS= read -r ref; do
     01|02) max=10 ;;
     03) max=5 ;;
     04) max=6 ;;
+    05) max=10 ;;
     00) max=0 ;;
     系统要求规范) max=6 ;;
-    系统级技术标准) max=10 ;;
-    系统级技术规范) max=15 ;;
-    数据表设计约定) max=7 ;;
+    系统级技术标准) max=6 ;;
+    系统级技术规范) max=16 ;;
+    数据表设计约定) max=3 ;;
+    接口契约) max=6 ;;
+    代码工程结构说明) max=1 ;;
   esac
   if [ "$sec" -gt "$max" ]; then
     violation=1; echo "    - 越界章节引用: $ref（上限 §$max）"
   fi
-done < <(grep -rhoE '(01|02|03|04|00|系统要求规范|系统级技术标准|系统级技术规范|数据表设计约定)[[:space:]]*§[0-9]+' \
-  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ agent/ docs/快速启动指南.md docs/最佳实践.md 2>/dev/null \
+done < <(grep -rhoE '(01|02|03|04|05|00|系统要求规范|系统级技术标准|系统级技术规范|数据表设计约定|接口契约|代码工程结构说明)[[:space:]]*§[0-9]+' \
+  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ docs/快速启动指南.md docs/最佳实践.md 2>/dev/null \
   | grep -vE "已知旧术语|项目审计|项目质量|项目评估")
 
 if [ "$violation" -eq 0 ]; then
@@ -137,13 +143,29 @@ fi
 # -----------------------------------------------------------------------------
 echo "[5] 禁用旧术语扫描"
 hits=$(grep -rnE "接口规划|逐条标注|05-接口设计|06-模块详细设计|产品通用规则|产品工程摘要|技术工程摘要|00[ -]系统概览" \
-  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ agent/ docs/快速启动指南.md docs/最佳实践.md 2>/dev/null \
+  CLAUDE.md AGENTS.md CLAUDE.architect.md AGENTS.architect.md opencode.json templates/ skills/ docs/快速启动指南.md docs/最佳实践.md 2>/dev/null \
   | grep -vE "已知旧术语|项目审计|项目质量|项目评估")
 if [ -z "$hits" ]; then
   check "活动文件中无废弃旧术语（接口规划/逐条标注/05-06/产品通用规则/产品工程摘要/技术工程摘要/00-系统概览等已删模板名）" 0
 else
   files=$(echo "$hits" | cut -d: -f1 | sort -u | tr '\n' ' ')
   check "活动文件中无废弃旧术语" 1 "→ 命中文件: $files"
+fi
+
+# -----------------------------------------------------------------------------
+# 检查 6：布局语义无绝对几何（02 只写语义，不写画布 / 坐标 / px）
+#   范围：模板层 02 与系统级交互规范。实例产物（document/）为旧结构产物，不纳入。
+#   注：templates/界面设计要素.md 是视觉值唯一权威源，合法含 px，不扫描。
+# -----------------------------------------------------------------------------
+echo "[6] 布局语义无绝对几何"
+geo_hits=$(grep -nE '画布尺寸|坐标提示|[0-9]+px|x=[0-9]|y=[0-9]|距顶部[0-9]|距左侧[0-9]|[0-9]+×[0-9]+' \
+  templates/prototype-agent/module-level/02-模块-UI交互规格.md templates/prototype-agent/system-level/系统交互规范.md 2>/dev/null \
+  | grep -vE '不写|不得|不重复|禁止用')
+if [ -z "$geo_hits" ]; then
+  check "02 / 系统交互规范 无画布·坐标·px 绝对几何（只写语义档位）" 0
+else
+  files=$(echo "$geo_hits" | cut -d: -f1 | sort -u | tr '\n' ' ')
+  check "布局语义无绝对几何" 1 "→ 命中文件: $files"
 fi
 
 # -----------------------------------------------------------------------------
