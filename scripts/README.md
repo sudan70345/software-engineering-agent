@@ -116,7 +116,51 @@
 - `0`: 校验通过或仅有警告（非严格模式）
 - `1`: 校验失败
 
-### 4. pre-commit.sample — Git Pre-commit Hook
+### 4. consistency-check.sh — 全仓骨架一致性校验
+
+**用途**：扫描「活动骨架文件」并阻断多文件手动同步漂移。是 pre-commit hook 的实际执行体。
+
+**命令**：
+```bash
+./scripts/consistency-check.sh
+```
+
+**扫描面**：`CLAUDE.md` / `AGENTS.md` / `CLAUDE.architect.md` / `AGENTS.architect.md` / `opencode.json`
+/ `templates/` / `skills/` / `docs/快速启动指南.md` / `docs/最佳实践.md` / `scripts/README.md` / `README.md` / `SETUP.md`
+（排除 `document/` 历史产物、`archive/` 过程文档）
+
+**检查项（8）**：
+
+| # | 检查 | 说明 |
+|---|------|------|
+| 1 | opencode.json 合法 | JSON 语法校验 |
+| 2 | skill 软链接完整性 | `skills/` 与 `.opencode/skills/` 一一对应、无悬空/多余 |
+| 3 | §术语对照表 引用可解析 | 硬引用必须指向含该标题的文件 |
+| 4 | 章节号不变量 + 白名单 | 4a 矛盾映射（异常=§9 / 未决项=§10）；4b 引用章节号不超目标文档实际上限 |
+| 5 | 禁用旧术语扫描 | 活动文件中不得出现已删模板名/旧术语 |
+| 6 | 布局语义无绝对几何 | 02 / 系统交互规范 / 项目级通用规则 不写画布·坐标·px |
+| 7 | 基准 ↔ 模板骨架一致 | 7a self-check「章节号基准」每一项与模板 `## N. 标题` 相符；7b 反向完备性（模板每个 `## N. ` 都已在基准登记） |
+| 8 | 相对路径深度一致性 | 项目级文件引用（模块级 4 级 / 系统级 2 级 / 系统根 1 级）+ tech 侧 `prd/` 引用（模块级 3 级 / 系统级 1 级） |
+
+**豁免清单（有意豁免，非漏扫）**：
+1. **历史日志区**：`README.md` / `SETUP.md` 中 `<!-- historical-log:begin -->` 与 `<!-- historical-log:end -->` 包裹的区间
+   —— 日志是「当时状态」的原样记录，其术语/章节号/产物名已废止，按约定**只归档不改写**，不构成对当前执行的约束。
+   新增日志写在该区间**之外**（日志倒序，新条目在上），仍受全量扫描。
+2. `templates/**/界面设计要素.md` —— 视觉值唯一权威源，合法承载 px / 色值。
+3. `archive/` 下的一切过程文档；4. `document/` 下的历史系统产物。
+
+**退出码**：`0` 全部通过；`1` 存在不一致（可作阻塞条件）。
+
+> ⚠️ **已知环境陷阱（改脚本时必读）**
+> - **多字节字节语义**：本机默认 `awk` 为 one-true-awk，`substr(s,1,1)` 与 `/^§[0-9]/` 按**字节**工作
+>   （`§` 占 2 字节、`：` 占 3 字节），用它们做「第 1 个字符是否 §」的判据会**静默失配**。
+>   一律改用 `index()` 定位 + `length()` 显式推进字节。
+> - **`$var` 紧跟中文标点**：在非 UTF-8 locale 下（如 GitHub Actions / 部分 CI 默认 `LC_ALL=C`），
+>   bash 会把后续多字节字节当成变量名字符，把 `$ttl」` 解析成变量 `ttl」`；配合 `set -u` 直接报
+>   「未绑定的变量」并中断脚本。**凡 `$var` 与中文/全角标点相邻，必须写 `${var}`**。
+> - **抽取中文文件名**：`grep -oE '[A-Za-z0-9_/.-]*\.md'` 匹配不到中文名，须用「非空白/反引号」字符类。
+
+### 5. pre-commit.sample — Git Pre-commit Hook
 
 **用途**：在 git commit 前自动校验「进版本控制的骨架文件」（主指令 / skills / templates / opencode.json），阻断多文件同步漂移。
 
@@ -128,7 +172,7 @@ chmod +x .git/hooks/pre-commit
 ```
 
 **工作机制**：
-1. 运行 `consistency-check.sh` 全仓一致性校验（5 项：opencode.json 合法 / skill 软链接 / 术语引用可解析 / 章节号不变量 / 禁用旧术语）
+1. 运行 `consistency-check.sh` 全仓一致性校验（8 项：opencode.json 合法 / skill 软链接 / 术语引用可解析 / 章节号不变量+白名单 / 禁用旧术语 / 布局语义无绝对几何 / self-check 基准↔模板骨架 / 相对路径深度）
 2. 校验失败则阻止提交，并提示修复建议
 3. 校验通过则允许提交
 
